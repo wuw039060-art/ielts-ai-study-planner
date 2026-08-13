@@ -1,10 +1,10 @@
-# 雅思学习手册
+# IELTS AI Study Planner · 雅思学习手册
 
-[![Deploy GitHub Pages](https://github.com/wuw039060-art/ielts-adaptive-handbook/actions/workflows/pages.yml/badge.svg)](https://github.com/wuw039060-art/ielts-adaptive-handbook/actions/workflows/pages.yml)
+[![Deploy GitHub Pages](https://github.com/wuw039060-art/ielts-ai-study-planner/actions/workflows/pages.yml/badge.svg)](https://github.com/wuw039060-art/ielts-ai-study-planner/actions/workflows/pages.yml)
 
-[在线演示](https://wuw039060-art.github.io/ielts-adaptive-handbook/) · [提交与部署说明](docs/GITHUB_SUBMISSION_GUIDE.md) · [安全与隐私说明](SECURITY.md)
+[在线演示](https://wuw039060-art.github.io/ielts-ai-study-planner/) · [提交与部署说明](docs/GITHUB_SUBMISSION_GUIDE.md) · [安全与隐私说明](SECURITY.md)
 
-一个面向长期备考的个性化 IELTS 学习规划网站。它不承担在线做题和题库分发，而是把学习计划、训练方法、阶段验收、异常处理和修订记录放在同一个系统里，帮助学习者根据真实证据持续调整接下来一年的安排。
+**IELTS AI Study Planner** 是一个面向长期雅思备考和英语能力提升的个性化学习规划网站。它把学习计划、训练方法、阶段验收、进度复盘、状态管理和可选 AI 分析放在同一个系统里，帮助学习者根据真实证据持续调整接下来一年的安排。它不承担在线做题和题库分发，重点始终是回答“接下来为什么这样学、怎样学、何时才算有效”。
 
 ## 项目初衷
 
@@ -115,7 +115,7 @@ pnpm run check
 仓库已包含自动部署工作流。代码推送到 `main` 后，在 GitHub 仓库的 **Settings → Pages** 中将 Source 设为 **GitHub Actions**，随后可通过以下形式访问：
 
 ```text
-https://wuw039060-art.github.io/ielts-adaptive-handbook/
+https://wuw039060-art.github.io/ielts-ai-study-planner/
 ```
 
 详细的首次提交步骤见 [docs/GITHUB_SUBMISSION_GUIDE.md](docs/GITHUB_SUBMISSION_GUIDE.md)。

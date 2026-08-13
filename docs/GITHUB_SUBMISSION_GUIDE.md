@@ -21,18 +21,18 @@
 ## 三、在 GitHub 创建空仓库
 
 1. 登录 GitHub，点击 **New repository**。
-2. 推荐仓库名：`ielts-study-handbook`。
+2. 推荐仓库名：`ielts-ai-study-planner`。这个名称同时覆盖 `IELTS`、`AI` 和 `study planner` 三组核心搜索词。
 3. Description 可填写：
 
    ```text
-   An evidence-driven IELTS study planning handbook with adaptive review rules and privacy-aware AI integration.
+   AI-assisted IELTS study planner for adaptive IELTS preparation, evidence-based progress reviews, offline use, and privacy-first API storage.
    ```
 
 4. 不要勾选自动创建 README、`.gitignore` 或 License，本地已经准备好相关文件。
 5. 创建仓库后复制 HTTPS 地址，例如：
 
    ```text
-   https://github.com/<你的用户名>/ielts-study-handbook.git
+   https://github.com/<你的用户名>/ielts-ai-study-planner.git
    ```
 
 ## 四、在本地初始化并提交
@@ -47,7 +47,7 @@ git add .
 git status
 git diff --cached --stat
 git commit -m "feat: publish IELTS Study Handbook"
-git remote add origin https://github.com/<你的用户名>/ielts-study-handbook.git
+git remote add origin https://github.com/<你的用户名>/ielts-ai-study-planner.git
 git push -u origin main
 ```
 
@@ -63,7 +63,7 @@ git config --global user.email "你的 GitHub 邮箱或 noreply 邮箱"
 如果已经存在错误的 `origin`：
 
 ```powershell
-git remote set-url origin https://github.com/<你的用户名>/ielts-study-handbook.git
+git remote set-url origin https://github.com/<你的用户名>/ielts-ai-study-planner.git
 ```
 
 ## 五、打开在线演示
@@ -74,7 +74,7 @@ git remote set-url origin https://github.com/<你的用户名>/ielts-study-handb
 4. 在线地址通常是：
 
    ```text
-   https://<你的用户名>.github.io/ielts-study-handbook/
+   https://<你的用户名>.github.io/ielts-ai-study-planner/
    ```
 
 如果 Pages 构建失败，优先查看失败步骤，不要重复提交相同代码。常见原因是 Actions 未启用、Pages 来源未选 GitHub Actions，或仓库默认分支不是 `main`。

@@ -1,12 +1,12 @@
 {
-  "name": "ielts-study-handbook",
+  "name": "ielts-ai-study-planner",
   "version": "1.0.0",
-  "description": "A personalized, evidence-driven IELTS study planning handbook with adaptive review rules.",
+  "description": "A privacy-first, AI-assisted IELTS study planner for adaptive IELTS preparation and long-term English learning.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wuw039060-art/ielts-adaptive-handbook.git"
+    "url": "git+https://github.com/wuw039060-art/ielts-ai-study-planner.git"
   },
-  "homepage": "https://wuw039060-art.github.io/ielts-adaptive-handbook/",
+  "homepage": "https://wuw039060-art.github.io/ielts-ai-study-planner/",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.2",
