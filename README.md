@@ -1,5 +1,7 @@
 # 雅思学习手册
 
+[![Deploy GitHub Pages](https://github.com/wuw039060-art/ielts-adaptive-handbook/actions/workflows/pages.yml/badge.svg)](https://github.com/wuw039060-art/ielts-adaptive-handbook/actions/workflows/pages.yml)
+
 [在线演示](https://wuw039060-art.github.io/ielts-adaptive-handbook/) · [提交与部署说明](docs/GITHUB_SUBMISSION_GUIDE.md) · [安全与隐私说明](SECURITY.md)
 
 一个面向长期备考的个性化 IELTS 学习规划网站。它不承担在线做题和题库分发，而是把学习计划、训练方法、阶段验收、异常处理和修订记录放在同一个系统里，帮助学习者根据真实证据持续调整接下来一年的安排。
