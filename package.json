@@ -1,0 +1,38 @@
+{
+  "name": "ielts-study-handbook",
+  "version": "1.0.0",
+  "description": "A personalized, evidence-driven IELTS study planning handbook with adaptive review rules.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wuw039060-art/ielts-adaptive-handbook.git"
+  },
+  "homepage": "https://wuw039060-art.github.io/ielts-adaptive-handbook/",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/build-standalone-preview.mjs",
+    "preview": "vite preview",
+    "test": "node --test tests/sites-worker.test.mjs",
+    "test:sites": "pnpm run check",
+    "check": "pnpm run build && pnpm run test"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "2.1.10",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "5.0.4",
+    "vite": "6.4.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "nanoid": "3.3.17"
+    }
+  }
+}

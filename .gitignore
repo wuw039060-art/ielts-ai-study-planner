@@ -1,0 +1,33 @@
+# Dependencies and generated output
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+
+# Local platform configuration and QA artifacts
+.openai/
+qa/
+*.log
+.npmrc
+scripts/prepare-sites-build.mjs
+
+# Local-only project notes
+AGENTS.md
+ADVERSARIAL_REVIEW.md
+design-qa.md
+
+# Credentials and machine-specific settings
+.env
+.env.*
+!.env.example
+*.local
+*.enc.json
+*.encrypted.json
+exports/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
