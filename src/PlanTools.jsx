@@ -19,7 +19,7 @@ function download(raw, name) {
   const link = document.createElement("a"); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export function PlanPanel({ onSaved, onNavigate }) {
+export function PlanPanel({ reference, onSaved, onNavigate }) {
   const [, redraw] = useState(0);
   const [error, setError] = useState("");
   const [outcome, setOutcome] = useState("uncertain");
@@ -40,9 +40,15 @@ export function PlanPanel({ onSaved, onNavigate }) {
     catch (e) { setError(e.message); }
   }
   return <section className="plan-tools">
-    <p className="eyebrow">{plan ? `近期安排 · 版本 ${store.versions.indexOf(plan) + 1}` : "本周安排 · 初始参考"}</p>
-    <h2>{plan?.title || "先建立可持续的一周"}</h2>
-    <p>{plan?.reason || "尚未收到新的情况确认。以下按每周 8 小时估算；请在更新情况中填写真实时间，采用建议后这里会更新。"}</p>
+    <p className="eyebrow">{plan ? `近期安排 · 版本 ${store.versions.indexOf(plan) + 1}` : reference?.eyebrow || "本周安排 · 基础参考"}</p>
+    <h2>{plan?.title || reference?.title || "先建立可持续的一周"}</h2>
+    <p>{plan?.reason || reference?.summary || "尚未收到新的情况确认。以下按每周 8 小时估算；请在更新情况中填写真实时间，采用建议后这里会更新。"}</p>
+    {!plan && reference && <>
+      <h3>本月优先动作</h3>
+      <ol>{reference.actions.map((action) => <li key={action}>{action}</li>)}</ol>
+      <p><strong>本月验收：</strong>{reference.acceptance.join("；")}</p>
+      <p><strong>落后处理：</strong>{reference.recovery}</p>
+    </>}
     {plan && <>
       <p>依据：{source?.input.summary}</p>
       <p>取代：{parent?.title || "初始参考安排"}。年度目标仍为 8 分；阶段验收不因此通过。</p>

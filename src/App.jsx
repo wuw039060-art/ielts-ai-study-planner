@@ -4,7 +4,6 @@ import {
   ArrowBendDownRight,
   ArrowRight,
   BookOpen,
-  Briefcase,
   CalendarBlank,
   CaretDown,
   CaretRight,
@@ -45,6 +44,7 @@ import { requestAdaptation } from "./adaptation.js";
 import { readStore, saveStore, adoptRevision } from "./planStore.js";
 import { PlanPanel, DataTools, MethodNextStep } from "./PlanTools.jsx";
 import { assessEvidence } from "./learningModel.js";
+import { currentPhase, getCalendarContext, localDateKey, localMonthKey } from "./schedule.js";
 import {
   createEncryptedApiConfig,
   exportEncryptedApiConfig,
@@ -132,22 +132,8 @@ const durationOptions = [
   ["month_plus", "持续一个月以上"],
 ];
 
-function localDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function localMonthKey(date = new Date()) {
-  return localDateKey(date).slice(0, 7).replace("-", ".");
-}
-
 function currentPhaseId(date = new Date()) {
-  const today = localDateKey(date);
-  const matched = phases.find((phase) => today >= phase.start && today <= phase.end);
-  if (matched) return matched.id;
-  return today < phases[0].start ? phases[0].id : phases.at(-1).id;
+  return currentPhase(date).id;
 }
 
 function phaseCalendarStatus(phase, date = new Date()) {
@@ -360,31 +346,44 @@ function CambridgeCoverage() {
 
 function CurrentPlan({ onNavigate, revisionSignal }) {
   const currentRedLines = [0, 2, 3, 5].map((index) => cambridgePlan.redLines[index]);
+  const calendar = getCalendarContext();
+  const reference = calendar.reference || {
+    eyebrow: "当前周期 · 等待新的月计划",
+    title: "先核对当前进度",
+    summary: "当前日期不在预设的十二个月计划内。先提交最新学习情况，再决定下一段安排。",
+    actionLabel: "提交最新学习情况",
+    actions: [],
+    acceptance: [],
+    recovery: "不自动延长或降低阶段标准，先根据可靠证据确认下一步。",
+    constraints: [
+      { title: "当前阶段", detail: `${calendar.phase.short} · ${calendar.phase.title}` },
+      { title: "阶段验收", detail: calendar.phase.gate },
+      { title: "下一步", detail: "补充最近成绩、执行率和真实可用时间。" },
+    ],
+  };
+  const constraintIcons = [BookOpen, Clock, CalendarBlank];
 
   return (
     <main className="page current-plan">
       <PhaseRoute />
-      <p>日期只决定建议查看的周期，不代表已通过验收。未达上一阶段标准时，继续按上一阶段学习；新版近期安排显示在下方。</p>
+      <p>今天是 {calendar.dateKey}，首页正按 {calendar.monthKey} 的月计划显示。上方日期是整个阶段的起止范围，不是页面更新时间；日历也不代表已经通过阶段验收。</p>
 
       <section className="decision">
         <div className="section-heading">
           <span className="heading-icon"><Target size={24} weight="duotone" /></span>
           <div>
-            <p className="eyebrow">初始示例判断 · 等待新证据复核</p>
-            <h1>现在最重要的决定</h1>
+            <p className="eyebrow">{reference.eyebrow}</p>
+            <h1>{reference.title}</h1>
           </div>
         </div>
-        <p className="decision-copy">
-          最近一次阅读练习不能作为有效基线：没有严格计时，并因状态不佳提前停止。
-          在调整长期计划前，先安排一次状态充分、全程受控的验证，避免把一次糟糕体验误当成真实能力。
-        </p>
+        <p className="decision-copy">{reference.summary}</p>
         <button className="text-action" onClick={() => onNavigate("update")}>
-          <span>行动建议：记录这次情况，恢复后再安排验证</span>
+          <span>行动建议：{reference.actionLabel}</span>
           <ArrowRight size={18} />
         </button>
       </section>
 
-      <PlanPanel onSaved={() => onNavigate("plan")} onNavigate={onNavigate} />
+      <PlanPanel reference={reference} onSaved={() => onNavigate("plan")} onNavigate={onNavigate} />
 
       <section className="current-red-lines" aria-labelledby="current-red-lines-title">
         <div className="current-red-lines-heading">
@@ -430,22 +429,17 @@ function CurrentPlan({ onNavigate, revisionSignal }) {
             <SlidersHorizontal size={28} />
             <div>
               <p className="eyebrow">计划容量</p>
-              <h2>初始时间安排</h2>
+              <h2>{calendar.monthKey.replace(".", " 年 ")} 月现实安排</h2>
             </div>
           </div>
           <ul>
-            <li>
-              <span className="constraint-icon"><Briefcase size={20} /></span>
-              <div><strong>当前时间有限</strong><span>标准周 8–9 小时，不以熬夜补量。</span></div>
-            </li>
-            <li>
-              <span className="constraint-icon"><Clock size={20} /></span>
-              <div><strong>工作日时间碎片化</strong><span>每天 40–50 分钟；极累时执行 25 分钟最低版。</span></div>
-            </li>
-            <li>
-              <span className="constraint-icon"><CalendarBlank size={20} /></span>
-              <div><strong>周末承担深度学习</strong><span>一次考试能力训练，一次表达与整合。</span></div>
-            </li>
+            {reference.constraints.map((item, index) => {
+              const ConstraintIcon = constraintIcons[index];
+              return <li key={item.title}>
+                <span className="constraint-icon"><ConstraintIcon size={20} /></span>
+                <div><strong>{item.title}</strong><span>{item.detail}</span></div>
+              </li>;
+            })}
           </ul>
         </aside>
       </div>
