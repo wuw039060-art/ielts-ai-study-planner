@@ -17,7 +17,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/build-standalone-preview.mjs",
     "preview": "vite preview",
-    "test": "node --test tests/sites-worker.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "test:sites": "pnpm run check",
     "check": "pnpm run build && pnpm run test"
   },
