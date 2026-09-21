@@ -42,6 +42,9 @@ import {
   scoreReference,
 } from "./data.js";
 import { requestAdaptation } from "./adaptation.js";
+import { readStore, saveStore, adoptRevision } from "./planStore.js";
+import { PlanPanel, DataTools, MethodNextStep } from "./PlanTools.jsx";
+import { assessEvidence } from "./learningModel.js";
 import {
   createEncryptedApiConfig,
   exportEncryptedApiConfig,
@@ -156,15 +159,14 @@ function phaseCalendarStatus(phase, date = new Date()) {
 
 function readRevisions() {
   try {
-    const value = JSON.parse(localStorage.getItem("ielts-revisions") || "[]");
-    return Array.isArray(value) ? value : [];
+    return readStore().revisions;
   } catch {
     return [];
   }
 }
 
 function writeRevisions(entries) {
-  localStorage.setItem("ielts-revisions", JSON.stringify(entries));
+  saveStore({ ...readStore(), revisions: entries });
 }
 
 function makeRevisionId() {
@@ -217,7 +219,7 @@ function PhaseRoute({ expanded = false }) {
             <span className="phase-line" />
             <strong>{phase.short} {phase.title}</strong>
             <span>{phase.range}</span>
-            {phaseCalendarStatus(phase) === "当前周期" && <em>当前周期</em>}
+            {phaseCalendarStatus(phase) === "当前周期" && <em>日历建议周期</em>}
           </button>
         ))}
       </div>
@@ -357,21 +359,18 @@ function CambridgeCoverage() {
 }
 
 function CurrentPlan({ onNavigate, revisionSignal }) {
-  const acceptedPatch = useMemo(
-    () => readRevisions().find((entry) => entry.status === "已采用"),
-    [revisionSignal],
-  );
   const currentRedLines = [0, 2, 3, 5].map((index) => cambridgePlan.redLines[index]);
 
   return (
     <main className="page current-plan">
       <PhaseRoute />
+      <p>日期只决定建议查看的周期，不代表已通过验收。未达上一阶段标准时，继续按上一阶段学习；新版近期安排显示在下方。</p>
 
       <section className="decision">
         <div className="section-heading">
           <span className="heading-icon"><Target size={24} weight="duotone" /></span>
           <div>
-            <p className="eyebrow">最近一次学习判断</p>
+            <p className="eyebrow">初始示例判断 · 等待新证据复核</p>
             <h1>现在最重要的决定</h1>
           </div>
         </div>
@@ -383,14 +382,9 @@ function CurrentPlan({ onNavigate, revisionSignal }) {
           <span>行动建议：记录这次情况，恢复后再安排验证</span>
           <ArrowRight size={18} />
         </button>
-        {acceptedPatch && (
-          <div className="accepted-patch">
-            <span>当前临时补丁</span>
-            <strong>{acceptedPatch.suggestion.title}</strong>
-            <p>{acceptedPatch.suggestion.changes.join("；")}</p>
-          </div>
-        )}
       </section>
+
+      <PlanPanel onSaved={() => onNavigate("plan")} onNavigate={onNavigate} />
 
       <section className="current-red-lines" aria-labelledby="current-red-lines-title">
         <div className="current-red-lines-heading">
@@ -436,13 +430,13 @@ function CurrentPlan({ onNavigate, revisionSignal }) {
             <SlidersHorizontal size={28} />
             <div>
               <p className="eyebrow">计划容量</p>
-              <h2>现实约束</h2>
+              <h2>初始时间安排</h2>
             </div>
           </div>
           <ul>
             <li>
               <span className="constraint-icon"><Briefcase size={20} /></span>
-            <div><strong>当前时间有限</strong><span>标准周 8–9 小时，不以熬夜补量。</span></div>
+              <div><strong>当前时间有限</strong><span>标准周 8–9 小时，不以熬夜补量。</span></div>
             </li>
             <li>
               <span className="constraint-icon"><Clock size={20} /></span>
@@ -874,7 +868,7 @@ function ResponseGuide() {
   );
 }
 
-function SituationUpdate({ onSaved, aiConfig, onAiConfigChange }) {
+function SituationUpdate({ onSaved, aiConfig, onAiConfigChange, onNavigate }) {
   const [form, setForm] = useState({
     eventType: "performance",
     pattern: "drop",
@@ -888,6 +882,7 @@ function SituationUpdate({ onSaved, aiConfig, onAiConfigChange }) {
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [showConnection, setShowConnection] = useState(false);
   const capability = useMemo(() => getSecureApiConfigCapability(), []);
   const [hasSavedConfig, setHasSavedConfig] = useState(() => hasEncryptedApiConfig());
@@ -1030,8 +1025,13 @@ function SituationUpdate({ onSaved, aiConfig, onAiConfigChange }) {
     event.preventDefault();
     if (!form.summary.trim()) return;
     setLoading(true);
+    setSaveError("");
+    try {
+    readStore();
     const existing = readRevisions();
-    const history = existing.slice(0, 8).map((entry) => ({
+    const history = existing.filter((entry) => entry.input?.eventType === form.eventType
+      && (form.eventType !== "performance" || entry.input?.measurement?.skill === form.measurement?.skill)
+      && Date.now() - Date.parse(entry.createdAt) <= 42 * 86400000).slice(0, 8).map((entry) => ({
       createdAt: entry.createdAt,
       eventType: entry.input?.eventType,
       pattern: entry.input?.pattern,
@@ -1039,28 +1039,41 @@ function SituationUpdate({ onSaved, aiConfig, onAiConfigChange }) {
       capacity: entry.input?.capacity,
       energy: entry.input?.energy,
       pressure: entry.input?.pressure,
+      evidence: entry.input?.evidence,
     }));
-    const suggestion = await requestAdaptation({ ...form, history }, aiConfig);
+    const evidenceCheck = assessEvidence(form, existing);
+    const checkedInput = { ...form, history, evidenceVersion: 2, evidence: evidenceCheck.level, evidenceReason: evidenceCheck.reason };
+    const suggestion = await requestAdaptation(checkedInput, aiConfig);
     const entry = {
       id: makeRevisionId(),
       createdAt: new Date().toISOString(),
-      input: form,
+      input: checkedInput,
       suggestion,
       status: "待确认",
     };
-    writeRevisions([entry, ...existing]);
+    writeRevisions([entry, ...readStore().revisions]);
     setResult(entry);
-    setLoading(false);
     onSaved?.();
+    } catch (error) {
+      setSaveError(error.message);
+    } finally { setLoading(false); }
   }
 
   function decide(status) {
+    try {
+    if (status === "已采用") {
+      saveStore(adoptRevision(readStore(), result.id));
+      setResult((entry) => ({ ...entry, status }));
+      onSaved?.();
+      return;
+    }
     const entries = readRevisions().map((entry) =>
       entry.id === result.id ? { ...entry, status } : entry,
     );
     writeRevisions(entries);
     setResult((entry) => ({ ...entry, status }));
     onSaved?.();
+    } catch (error) { setSaveError(error.message); }
   }
 
   function changeEventType(eventType) {
@@ -1279,15 +1292,29 @@ function SituationUpdate({ onSaved, aiConfig, onAiConfigChange }) {
               <small className="field-help">按今天能够稳定完成的最长任务选择，不按心情好坏选择。</small>
             </label>
           </div>
-          <label>
-            证据条件
-            <select value={form.evidence} onChange={(e) => setForm({ ...form, evidence: e.target.value })}>
-              <option value="partial">有结果，但条件不完整</option>
-              <option value="reliable">未见材料、严格计时、条件明确</option>
-              <option value="subjective">主要是感受或观察</option>
+          <label>这次想排查的科目（可选，不代表已确认短板）
+            <select value={form.focusSkill || ""} onChange={(e) => setForm({ ...form, focusSkill: e.target.value })}>
+              <option value="">不指定／仅调整时间与状态</option>
+              <option value="listening">听力</option><option value="reading">阅读</option>
+              <option value="writing">写作</option><option value="speaking">口语</option><option value="vocabulary">词汇</option>
             </select>
           </label>
-          <p className="privacy-note">学习记录保存在当前浏览器。接口不可用时继续使用本地规则，不会中断保存。</p>
+          <details className="measurement-fields">
+            <summary>补充阶段测量（可选，仅听力或阅读）</summary>
+            <p>普通情况更新不必填写。只有要判断能力变化时，再补充这些条件；写作、口语外部反馈可先写在描述中，不在此自动判分。</p>
+            {[
+              ["material", "材料和 Test", "text"], ["raw", "答对题数（完整 40 题）", "number"], ["minutes", "实际用时（分钟）", "number"],
+            ].map(([key, label, type]) => <label key={key}>{label}<input type={type} min="0" max={key === "raw" ? "40" : undefined}
+              value={form.measurement?.[key] ?? ""} onChange={(e) => setForm({ ...form, measurement: { ...form.measurement, [key]: e.target.value } })} /></label>)}
+            <label>科目<select value={form.measurement?.skill || ""} onChange={(e) => setForm({ ...form, measurement: { ...form.measurement, skill: e.target.value } })}>
+              <option value="">请选择</option><option value="listening">听力</option><option value="reading">学术阅读</option></select></label>
+            {[["first", "是否首次接触"], ["timed", "是否严格计时"], ["complete", "是否完成全部 40 题"], ["aided", "是否查词、暂停、回放或看过答案"], ["normal", "状态和环境是否正常"]].map(([key, label]) =>
+              <label key={key}>{label}<select value={form.measurement?.[key] || ""} onChange={(e) => setForm({ ...form, measurement: { ...form.measurement, [key]: e.target.value } })}>
+                <option value="">未确认</option><option value="yes">是</option><option value="no">否</option></select></label>)}
+          </details>
+          <p>{assessEvidence(form).reason}</p>
+          <p className="privacy-note">学习记录保存在当前浏览器。启用接口后，描述、时间与证据条件会发送给所配置的服务；请勿填写无关隐私。接口失败时使用本地规则。</p>
+          {saveError && <p role="alert">{saveError}</p>}
           <button className="primary-button" type="submit" disabled={loading || !form.summary.trim()}>
             {loading ? "正在检查约束…" : "生成修订建议"}
             {!loading && <ArrowRight size={18} />}
@@ -1308,7 +1335,7 @@ function SituationUpdate({ onSaved, aiConfig, onAiConfigChange }) {
       {result && (
         <div className="suggestion" role="status">
           <div>
-            <p className="eyebrow">待确认 · {result.suggestion.mode === "rules" ? "规则模式" : "AI + 规则模式"}</p>
+            <p className="eyebrow">{result.status} · {result.suggestion.mode === "rules" ? "规则模式" : "AI + 规则模式"}</p>
             <h2>{result.suggestion.title}</h2>
             <p>{result.suggestion.rationale}</p>
             {result.suggestion.analysis?.summary && (
@@ -1317,10 +1344,13 @@ function SituationUpdate({ onSaved, aiConfig, onAiConfigChange }) {
               </p>
             )}
             <ul>{result.suggestion.changes.map((change) => <li key={change}>{change}</li>)}</ul>
+            <MethodNextStep input={result.input} onNavigate={onNavigate} />
+            <p>采用后将替换首页的近期安排，七天后复查；年度目标和阶段验收保持原标准。上一版本会保留，可从当前计划撤销。</p>
+            {!["micro", "weekly"].includes(result.suggestion.scope) && <p>当前建议只用于观察或重要决定前的核对，不直接改写近期安排。</p>}
             {result.status === "待确认" ? (
               <div className="decision-actions">
-                <button className="primary-button" type="button" onClick={() => decide("已采用")}>
-                  采用为当前补丁
+                <button className="primary-button" type="button" disabled={!["micro", "weekly"].includes(result.suggestion.scope)} onClick={() => decide("已采用")}>
+                  采用为近期安排
                 </button>
                 <button className="secondary-button" type="button" onClick={() => decide("未采用")}>
                   暂不采用
@@ -1353,7 +1383,7 @@ function Revisions({ revisionSignal }) {
       </div>
       <p className="revision-storage-note">
         <strong>保存位置</strong>
-        当前浏览器的本地存储，键名为 <code>ielts-revisions</code>。它不会写进项目文件，也不会自动同步到其他浏览器或设备。
+        当前浏览器的本地存储。旧记录 <code>ielts-revisions</code> 会在下次保存时迁入新版；它不会自动同步到其他设备，请使用上方的学习备份。
       </p>
       {entries.length === 0 ? (
         <div className="empty-state">
@@ -1400,6 +1430,7 @@ export function App() {
     if (active === "update") {
       return (
         <SituationUpdate
+          onNavigate={navigate}
           onSaved={() => setRevisionSignal((value) => value + 1)}
           aiConfig={aiConfig}
           onAiConfigChange={setAiConfig}
@@ -1413,6 +1444,7 @@ export function App() {
   return (
     <div className="app-shell">
       <Nav active={active} onChange={navigate} />
+      <DataTools onSaved={() => setRevisionSignal((value) => value + 1)} />
       {content}
     </div>
   );

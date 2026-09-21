@@ -21,7 +21,7 @@ function normalizeCapacity(capacity, legacyEnergy) {
   return "standard";
 }
 
-function localPolicy(input) {
+export function localPolicy(input) {
   const capacity = normalizeCapacity(input.capacity, input.energy);
   const isLowCapacity = capacity === "recovery" || capacity === "minimum";
   const hours = Number(input.availableHours || 8);
@@ -32,7 +32,8 @@ function localPolicy(input) {
   const history = Array.isArray(input.history) ? input.history.slice(0, 8) : [];
   const repeatedEvent = history.filter((entry) => entry?.eventType === input.eventType).length >= 2;
   const repeatedPattern = history.filter(
-    (entry) => entry?.eventType === input.eventType && entry?.pattern === input.pattern,
+    (entry) => entry?.eventType === input.eventType && entry?.pattern === input.pattern
+      && (input.evidenceVersion !== 2 || entry?.evidence === "reliable"),
   ).length >= 2;
 
   if (input.eventType === "goal") {
@@ -381,7 +382,7 @@ function localPolicy(input) {
       };
     }
 
-    if (input.pattern === "plateau" && hasReliableEvidence && (isExtended || repeatedPattern)) {
+    if (input.pattern === "plateau" && hasReliableEvidence && (repeatedPattern || (input.evidenceVersion !== 2 && isExtended))) {
       return {
         mode: "rules",
         scope: "weekly",
@@ -395,7 +396,7 @@ function localPolicy(input) {
       };
     }
 
-    if (input.pattern === "drop" && hasReliableEvidence && (isExtended || repeatedPattern)) {
+    if (input.pattern === "drop" && hasReliableEvidence && (repeatedPattern || (input.evidenceVersion !== 2 && isExtended))) {
       return {
         mode: "rules",
         scope: "weekly",
@@ -656,20 +657,6 @@ export async function requestAdaptation(input, config = null) {
     return analysis ? { ...fallback, mode: "ai+rules", analysis } : fallback;
   }
 
-  try {
-    const response = await fetch("/api/adapt", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input),
-    });
-
-    if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
-      return fallback;
-    }
-
-    const result = await response.json();
-    return validSuggestion(result) ? result : fallback;
-  } catch {
-    return fallback;
-  }
+  // Local mode must not silently transmit learning records to a hosted endpoint.
+  return fallback;
 }
